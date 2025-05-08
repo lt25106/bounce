@@ -1,224 +1,181 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Matter.js Bounce</title>
   <style>
     html, body {
-      width: 100%;
-      height: 100%;
       margin: 0;
       padding: 0;
-      font-family: 'Bahnschrift', san-serif;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Bahnschrift', sans-serif;
     }
-    span {
+    #gravity-toggle {
       position: absolute;
       right: 3rem;
       top: 1rem;
       scale: 2;
     }
+    canvas {
+      border: none;
+      outline: none;
+      display: block;
+    }
   </style>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bounce</title>
 </head>
 <body>
-  <canvas></canvas>
-  <span>
+  <span id="gravity-toggle">
     <input type="checkbox" id="gravity">
     <label for="gravity">Gravity</label>
   </span>
+  <canvas></canvas>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
   <script>
+    const {
+      Engine,
+      Render,
+      Runner,
+      Bodies,
+      World,
+      Body,
+      Events,
+      Composite,
+    } = Matter;
+    
     const canvas = document.querySelector("canvas");
-    const ctx = canvas.getContext("2d");
+    const engine = Engine.create();
+    const world = engine.world;
     
-    function resizecanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
+    world.gravity.y = 0; // Disable gravity by default
     
-    resizecanvas();
-    
-    let x = canvas.width/2;
-    let y = canvas.height/2;
-    let dx = 0;
-    let dy = 0;
-    let angle = 0;
-    
-    window.addEventListener("resize",resizecanvas)
-    
-    function move() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      // Draw the ball
-      ctx.beginPath();
-      ctx.arc(x, y, 10, 0, Math.PI * 2);
-      ctx.fillStyle = "black";
-      ctx.fill();
-      ctx.closePath();
-//      ctx.save();
-  //    ctx.translate(x, y);
-    //  ctx.rotate(angle);
-      //ctx.fillRect(-10, -10, 20, 20);
-//      ctx.restore();
-  //    angle += 0.02;
-      
-      ctx.beginPath();
-      ctx.arc(canvas.width/4, canvas.height/4, 20, 0, Math.PI * 2);
-      ctx.fillStyle = "red";
-      ctx.fill();
-      ctx.closePath();
-      
-      ctx.save();
-      ctx.translate(canvas.width *(3/4) + 20, canvas.height *(3/4) + 20);
-      ctx.rotate(angle);
-      ctx.fillRect(-20, -20, 40, 40);
-      ctx.restore();
-      angle += 0.02;
-      
-      // Update position
-      x += dx;
-      y += dy;
-      
-      if (document.getElementById("gravity").checked) {
-        dy += 0.2
+    const render = Render.create({
+      canvas: canvas,
+      engine: engine,
+      options: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+        wireframes: false,
+        showBounds: false,
+        background: "#fff"
       }
-      
-      // Bounce off walls (with damping)
-      if (x <= 10 || x + 10 >= canvas.width) {
-        dx = -dx * 0.5;  // Reverse direction & lose some energy
-      }
-      if (y <= 10 || y + 10 >= canvas.height) {
-        dy = -dy * 0.5;  // Reverse direction & lose some energy
-      }
-      if (Math.hypot(x - canvas.width/4, y - canvas.height/4) <= 30) {
-        // Get collision normal vector (from circle center to collision point)
-        const normalX = x - canvas.width/4;
-        const normalY = y - canvas.height/4;
-        
-        // Normalize the normal vector
-        const length = Math.hypot(normalX, normalY);
-        const normalizedNormalX = normalX / length;
-        const normalizedNormalY = normalY / length;
-        
-        // Dot product of velocity and normal
-        const dotProduct = dx * normalizedNormalX + dy * normalizedNormalY;
-        
-        // Reflect velocity vector (proper reflection formula)
-        dx = dx - 2 * dotProduct * normalizedNormalX;
-        dy = dy - 2 * dotProduct * normalizedNormalY;
-        
-        // Add damping (optional energy loss)
-        dx *= 0.5;
-        dy *= 0.5;
-        
-        // Reposition ball outside collision circle to prevent sticking
-        const overlap = 30 - Math.hypot(x - canvas.width/4, y - canvas.height/4) + 0.1;
-        x += normalizedNormalX * overlap;
-        y += normalizedNormalY * overlap;
-      }
-      
-      // Clamp position to prevent sticking at edges
-      x = Math.max(10, Math.min(canvas.width - 10, x));
-      y = Math.max(10, Math.min(canvas.height - 10, y));
-      
-      // Function to rotate a point around a center by a given angle
-      function rotatePoint(px, py, cx, cy, angle) {
-        const dx = px - cx;
-        const dy = py - cy;
-        const cos = Math.cos(angle);
-        const sin = Math.sin(angle);
-        return {
-          x: dx * cos - dy * sin + cx,
-          y: dx * sin + dy * cos + cy
-        };
-      }
-      
-      // Inside your move() function, after updating x and y
-      (function handleCollision() {
-        const halfSizeBlack = 10;
-        const halfSizeRed = 20;
-        const centerRed = {
-          x: canvas.width * (3 / 4) + 20,
-          y: canvas.height * (3 / 4) + 20
-        };
-        
-        // Rotate black square's center into unrotated frame
-        const rotatedBlack = rotatePoint(x, y, centerRed.x, centerRed.y, -angle);
-        
-        // Define AABBs in unrotated frame
-        const blackAABB = {
-          minX: rotatedBlack.x - halfSizeBlack,
-          maxX: rotatedBlack.x + halfSizeBlack,
-          minY: rotatedBlack.y - halfSizeBlack,
-          maxY: rotatedBlack.y + halfSizeBlack
-        };
-        
-        const redAABB = {
-          minX: centerRed.x - halfSizeRed,
-          maxX: centerRed.x + halfSizeRed,
-          minY: centerRed.y - halfSizeRed,
-          maxY: centerRed.y + halfSizeRed
-        };
-        
-        // Check for collision
-        const isColliding =
-        blackAABB.maxX > redAABB.minX &&
-        blackAABB.minX < redAABB.maxX &&
-        blackAABB.maxY > redAABB.minY &&
-        blackAABB.minY < redAABB.maxY;
-        
-        if (isColliding) {
-          // Determine overlap in each axis
-          const overlapX = Math.min(blackAABB.maxX, redAABB.maxX) - Math.max(blackAABB.minX, redAABB.minX);
-          const overlapY = Math.min(blackAABB.maxY, redAABB.maxY) - Math.max(blackAABB.minY, redAABB.minY);
-          
-          // Determine collision normal
-          let normal = { x: 0, y: 0 };
-          if (overlapX < overlapY) {
-            normal.x = rotatedBlack.x < centerRed.x ? -1 : 1;
-          } else {
-            normal.y = rotatedBlack.y < centerRed.y ? -1 : 1;
-          }
-          
-          // Rotate normal back to world space
-          const cos = Math.cos(angle);
-          const sin = Math.sin(angle);
-          const worldNormal = {
-            x: normal.x * cos - normal.y * sin,
-            y: normal.x * sin + normal.y * cos
-          };
-          
-          // Reflect velocity
-          const dot = dx * worldNormal.x + dy * worldNormal.y;
-          dx = (dx - 2 * dot * worldNormal.x) * 0.5; // Apply damping
-          dy = (dy - 2 * dot * worldNormal.y) * 0.5;
-          
-          // Reposition black square to prevent sticking
-          x += worldNormal.x * (Math.min(overlapX, overlapY) + 0.1);
-          y += worldNormal.y * (Math.min(overlapX, overlapY) + 0.1);
-        }
-      })();
-      
-      requestAnimationFrame(move);
-    }
+    });
     
-    // Start animation
-    requestAnimationFrame(move);
+    // Main ball (black)
+    const ball = Bodies.circle(window.innerWidth / 2, window.innerHeight / 2, 10, {
+      restitution: 0.5,
+      friction: 0,
+      frictionAir: 0,
+      label: "ball",
+      render: {
+        fillStyle: "black"
+      }
+    });
     
+    // Red circle (obstacle)
+    const redCircle = Bodies.circle(window.innerWidth / 4, window.innerHeight / 4, 20, {
+      isStatic: true,
+      label: "redCircle",
+      render: {
+        fillStyle: "red"
+      }
+    });
     
-    function setd(key) {
-      if (key.key == "ArrowUp") {
-        if (document.getElementById("gravity").checked) {
-          dy -= 8
-        } else {
-          dy -= 4
+    // Rotating red square (approximated with rectangle)
+    const redSquare = Bodies.rectangle(
+    window.innerWidth * (3 / 4),
+    window.innerHeight * (3 / 4),
+    40, 40, {
+      isStatic: true,
+      angle: 0,
+      render: {
+        fillStyle: "red"
+      }
+    });
+    
+    // Make the square rotate
+    Events.on(engine, "beforeUpdate", () => {
+      Body.rotate(redSquare, 0.02);
+    });
+    
+    // Add invisible window borders as static walls (thickness = 1)
+    const wallThickness = 1;
+    const walls = [
+      // Top
+      Bodies.rectangle(window.innerWidth / 2, -wallThickness / 2, window.innerWidth, wallThickness, {
+        isStatic: true,
+        render: { visible: false }
+      }),
+      // Bottom
+      Bodies.rectangle(window.innerWidth / 2, window.innerHeight + wallThickness / 2, window.innerWidth, wallThickness, {
+        isStatic: true,
+        render: { visible: false }
+      }),
+      // Left
+      Bodies.rectangle(-wallThickness / 2, window.innerHeight / 2, wallThickness, window.innerHeight, {
+        isStatic: true,
+        render: { visible: false }
+      }),
+      // Right
+      Bodies.rectangle(window.innerWidth + wallThickness / 2, window.innerHeight / 2, wallThickness, window.innerHeight, {
+        isStatic: true,
+        render: { visible: false }
+      }),
+    ];
+    
+    World.add(world, [ball, redCircle, redSquare, ...walls]);
+    Render.run(render);
+    
+    const runner = Runner.create();
+    Runner.run(runner, engine);
+    
+    // Gravity toggle
+    const gravityCheckbox = document.getElementById("gravity");
+    gravityCheckbox.addEventListener("change", () => {
+      world.gravity.y = gravityCheckbox.checked ? 1 : 0;
+    });
+    
+    // Key controls
+    document.addEventListener("keydown", (event) => {
+      let force = 0.01;
+      if (gravityCheckbox.checked && event.key === "ArrowUp") {
+        Body.applyForce(ball, ball.position, { x: 0, y: -0.05 });
+      } else {
+        switch (event.key) {
+          case "ArrowUp":
+          Body.applyForce(ball, ball.position, { x: 0, y: -force });
+          break;
+          case "ArrowDown":
+          Body.applyForce(ball, ball.position, { x: 0, y: force });
+          break;
+          case "ArrowLeft":
+          Body.applyForce(ball, ball.position, { x: -force, y: 0 });
+          break;
+          case "ArrowRight":
+          Body.applyForce(ball, ball.position, { x: force, y: 0 });
+          break;
         }
       }
-      if (key.key == "ArrowDown") {dy += 4}
-      if (key.key == "ArrowLeft") {dx -= 4}
-      if (key.key == "ArrowRight") {dx += 4}
-    }
-    document.addEventListener("keydown", setd)
+    });
     
-    // TODO: add more balls
+    // Resize canvas dynamically and update wall positions/sizes
+    window.addEventListener("resize", () => {
+      render.canvas.width = window.innerWidth;
+      render.canvas.height = window.innerHeight;
+
+      // Update wall positions and sizes
+      Body.setPosition(walls[0], { x: window.innerWidth / 2, y: -wallThickness / 2 });
+      Body.setPosition(walls[1], { x: window.innerWidth / 2, y: window.innerHeight + wallThickness / 2 });
+      Body.setPosition(walls[2], { x: -wallThickness / 2, y: window.innerHeight / 2 });
+      Body.setPosition(walls[3], { x: window.innerWidth + wallThickness / 2, y: window.innerHeight / 2 });
+
+      Body.scale(walls[0], window.innerWidth / walls[0].bounds.max.x, 1);
+      Body.scale(walls[1], window.innerWidth / walls[1].bounds.max.x, 1);
+      Body.scale(walls[2], 1, window.innerHeight / walls[2].bounds.max.y);
+      Body.scale(walls[3], 1, window.innerHeight / walls[3].bounds.max.y);
+    });
   </script>
 </body>
 </html>
