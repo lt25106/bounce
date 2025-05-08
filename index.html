@@ -66,6 +66,7 @@
     // Main ball (black)
     const ball = Bodies.circle(window.innerWidth / 2, window.innerHeight / 2, 10, {
       restitution: 0.5,
+      friction: 0,
       frictionAir: 0.01,
       label: "ball",
       render: {
