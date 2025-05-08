@@ -66,8 +66,7 @@
     // Main ball (black)
     const ball = Bodies.circle(window.innerWidth / 2, window.innerHeight / 2, 10, {
       restitution: 0.5,
-      friction: 0,
-      frictionAir: 0,
+      frictionAir: 0.01,
       label: "ball",
       render: {
         fillStyle: "black"
@@ -140,23 +139,51 @@
     // Key controls
     document.addEventListener("keydown", (event) => {
       let force = 0.01;
-      if (gravityCheckbox.checked && event.key === "ArrowUp") {
-        Body.applyForce(ball, ball.position, { x: 0, y: -0.05 });
-      } else {
-        switch (event.key) {
-          case "ArrowUp":
+      switch (event.key) {
+        case "ArrowUp":
           Body.applyForce(ball, ball.position, { x: 0, y: -force });
           break;
-          case "ArrowDown":
+        case "ArrowDown":
           Body.applyForce(ball, ball.position, { x: 0, y: force });
           break;
-          case "ArrowLeft":
+        case "ArrowLeft":
           Body.applyForce(ball, ball.position, { x: -force, y: 0 });
           break;
-          case "ArrowRight":
+        case "ArrowRight":
           Body.applyForce(ball, ball.position, { x: force, y: 0 });
           break;
-        }
+      }
+    });
+    
+    // Reset the ball if it leaves the frame, but keep bouncing working
+    Events.on(engine, "beforeUpdate", () => {
+      const r = ball.circleRadius;
+      let reset = false;
+      let x = ball.position.x;
+      let y = ball.position.y;
+
+      if (x < -r) {
+        x = r;
+        reset = true;
+      } else if (x > window.innerWidth + r) {
+        x = window.innerWidth - r;
+        reset = true;
+      }
+      if (y < -r) {
+        y = r;
+        reset = true;
+      } else if (y > window.innerHeight + r) {
+        y = window.innerHeight - r;
+        reset = true;
+      }
+
+      if (reset) {
+        Body.setPosition(ball, { x, y });
+        // Optionally, reverse velocity to simulate a bounce
+        Body.setVelocity(ball, {
+          x: -ball.velocity.x * 0.5,
+          y: -ball.velocity.y * 0.5
+        });
       }
     });
     
