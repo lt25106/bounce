@@ -85,47 +85,78 @@
     
     // Rotating red square (approximated with rectangle)
     const redSquare = Bodies.rectangle(
-    window.innerWidth * (3 / 4),
-    window.innerHeight * (3 / 4),
-    40, 40, {
-      isStatic: true,
-      angle: 0,
-      render: {
-        fillStyle: "red"
+      window.innerWidth * (3 / 4),
+      window.innerHeight * (3 / 4),
+      40, 40, {
+        isStatic: true,
+        angle: 0,
+        render: {
+          fillStyle: "red"
+        }
       }
-    });
+    );
+
+    const xpart1 = Bodies.rectangle(
+      window.innerWidth * (3 / 4) - 20,
+      window.innerHeight / 4 - 20,
+      80, 20, {
+        isStatic: true,
+        angle: 0,
+        render: {
+          fillStyle: "red"
+        }
+      }
+    );
     
+    const xpart2 = Bodies.rectangle(
+      window.innerWidth * (3 / 4) - 20,
+      window.innerHeight / 4 - 20,
+      20, 80, {
+        isStatic: true,
+        angle: 0,
+        render: {
+          fillStyle: "red"
+        }
+      }
+    );
+
+    const xshape = Body.create({
+      parts: [xpart1, xpart2],
+      isStatic: true,
+    });
+
     // Make the square rotate
     Events.on(engine, "beforeUpdate", () => {
       Body.rotate(redSquare, 0.02);
+      Body.rotate(xshape, -0.02);
     });
     
     // Add invisible window borders as static walls (thickness = 1)
     const wallThickness = 1;
     const walls = [
-      // Top
-      Bodies.rectangle(window.innerWidth / 2, -wallThickness / 2, window.innerWidth, wallThickness, {
-        isStatic: true,
-        render: { visible: false }
-      }),
-      // Bottom
-      Bodies.rectangle(window.innerWidth / 2, window.innerHeight + wallThickness / 2, window.innerWidth, wallThickness, {
-        isStatic: true,
-        render: { visible: false }
-      }),
-      // Left
-      Bodies.rectangle(-wallThickness / 2, window.innerHeight / 2, wallThickness, window.innerHeight, {
-        isStatic: true,
-        render: { visible: false }
-      }),
-      // Right
-      Bodies.rectangle(window.innerWidth + wallThickness / 2, window.innerHeight / 2, wallThickness, window.innerHeight, {
-        isStatic: true,
-        render: { visible: false }
-      }),
+    // Top
+    Bodies.rectangle(window.innerWidth / 2, -wallThickness / 2, window.innerWidth, wallThickness, {
+      isStatic: true,
+      render: { visible: false }
+    }),
+    // Bottom
+    Bodies.rectangle(window.innerWidth / 2, window.innerHeight + wallThickness / 2, window.innerWidth, wallThickness, {
+      isStatic: true,
+      render: { visible: false }
+    }),
+    // Left
+    Bodies.rectangle(-wallThickness / 2, window.innerHeight / 2, wallThickness, window.innerHeight, {
+      isStatic: true,
+      render: { visible: false }
+    }),
+    // Right
+    Bodies.rectangle(window.innerWidth + wallThickness / 2, window.innerHeight / 2, wallThickness, window.innerHeight, {
+      isStatic: true,
+      render: { visible: false }
+    }),
     ];
     
-    World.add(world, [ball, redCircle, redSquare, ...walls]);
+    World.add(world, [ball, redCircle, redSquare, ...walls, xshape]);
     Render.run(render);
     
     const runner = Runner.create();
@@ -142,17 +173,17 @@
       let force = 0.01;
       switch (event.key) {
         case "ArrowUp":
-          Body.applyForce(ball, ball.position, { x: 0, y: -force });
-          break;
+        Body.applyForce(ball, ball.position, { x: 0, y: -force });
+        break;
         case "ArrowDown":
-          Body.applyForce(ball, ball.position, { x: 0, y: force });
-          break;
+        Body.applyForce(ball, ball.position, { x: 0, y: force });
+        break;
         case "ArrowLeft":
-          Body.applyForce(ball, ball.position, { x: -force, y: 0 });
-          break;
+        Body.applyForce(ball, ball.position, { x: -force, y: 0 });
+        break;
         case "ArrowRight":
-          Body.applyForce(ball, ball.position, { x: force, y: 0 });
-          break;
+        Body.applyForce(ball, ball.position, { x: force, y: 0 });
+        break;
       }
     });
     
@@ -162,7 +193,7 @@
       let reset = false;
       let x = ball.position.x;
       let y = ball.position.y;
-
+      
       if (x < -r) {
         x = r;
         reset = true;
@@ -177,7 +208,7 @@
         y = window.innerHeight - r;
         reset = true;
       }
-
+      
       if (reset) {
         Body.setPosition(ball, { x, y });
         // Optionally, reverse velocity to simulate a bounce
@@ -192,13 +223,13 @@
     window.addEventListener("resize", () => {
       render.canvas.width = window.innerWidth;
       render.canvas.height = window.innerHeight;
-
+      
       // Update wall positions and sizes
       Body.setPosition(walls[0], { x: window.innerWidth / 2, y: -wallThickness / 2 });
       Body.setPosition(walls[1], { x: window.innerWidth / 2, y: window.innerHeight + wallThickness / 2 });
       Body.setPosition(walls[2], { x: -wallThickness / 2, y: window.innerHeight / 2 });
       Body.setPosition(walls[3], { x: window.innerWidth + wallThickness / 2, y: window.innerHeight / 2 });
-
+      
       Body.scale(walls[0], window.innerWidth / walls[0].bounds.max.x, 1);
       Body.scale(walls[1], window.innerWidth / walls[1].bounds.max.x, 1);
       Body.scale(walls[2], 1, window.innerHeight / walls[2].bounds.max.y);
