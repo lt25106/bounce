@@ -76,7 +76,7 @@
     
     // Red circle (obstacle)
     const redCircle = Bodies.circle(window.innerWidth / 4, window.innerHeight / 4, 20, {
-      isStatic: true,
+      isStatic: false,
       label: "redCircle",
       render: {
         fillStyle: "red"
@@ -88,7 +88,7 @@
       window.innerWidth * (3 / 4),
       window.innerHeight * (3 / 4),
       40, 40, {
-        isStatic: true,
+        isStatic: false,
         angle: 0,
         render: {
           fillStyle: "red"
