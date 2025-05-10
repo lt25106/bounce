@@ -76,7 +76,9 @@
     
     // Red circle (obstacle)
     const redCircle = Bodies.circle(window.innerWidth / 4, window.innerHeight / 4, 20, {
-      isStatic: false,
+      restitution: 0.5,
+      friction: 0,
+      frictionAir: 0.01,
       label: "redCircle",
       render: {
         fillStyle: "red"
@@ -88,7 +90,7 @@
       window.innerWidth * (3 / 4),
       window.innerHeight * (3 / 4),
       40, 40, {
-        isStatic: false,
+        isStatic: true,
         angle: 0,
         render: {
           fillStyle: "red"
@@ -125,10 +127,24 @@
       isStatic: true,
     });
 
+    const hexagon = Bodies.polygon(
+      window.innerWidth / 4,
+      window.innerHeight * (3 / 4),
+      6,
+      30, {
+        isStatic: true,
+        angle: Math.PI / 6,
+        render: {
+          fillStyle: "red"
+        }
+      }
+    );
+
     // Make the square rotate
     Events.on(engine, "beforeUpdate", () => {
       Body.rotate(redSquare, 0.02);
       Body.rotate(xshape, -0.02);
+      Body.rotate(hexagon, -0.02);
     });
     
     // Add invisible window borders as static walls (thickness = 1)
@@ -156,7 +172,7 @@
     }),
     ];
     
-    World.add(world, [ball, redCircle, redSquare, ...walls, xshape]);
+    World.add(world, [ball, redCircle, redSquare, ...walls, xshape, hexagon]);
     Render.run(render);
     
     const runner = Runner.create();
